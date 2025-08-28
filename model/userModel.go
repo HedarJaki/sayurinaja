@@ -2,20 +2,25 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
-type User_app struct {
-	gorm.Model
-	Username   string    `gorm:"primaryKey;unique" json:"username"`
-	Email      string    `gorm:"unique;not null" json:"email"`
-	Password   string    `gorm:"not null" json:"Password"`
-	Created_at time.Time `json:"created_at"`
-	Updated_at time.Time `json:"updated_at"`
-	Is_seller  bool      `gorm:"default:false" json:"is_seller"`
+type User struct {
+	UserID    uint      `gorm:"column:userID;primaryKey;autoIncrement"`
+	Username  string    `gorm:"unique;not null" json:"username"`
+	Email     string    `gorm:"unique;not null" json:"email"`
+	Password  string    `gorm:"not null" json:"password"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
+	Is_seller bool      `gorm:"default:false" json:"is_seller"`
 }
 
-func (User_app) Tablename() string {
-	return "user_app"
+type Store struct {
+	StoreID         int `gorm:"column:storeID;primaryKey;autoIncrement"`
+	UserID          int `gorm:"column:userID;not null"`
+	StoreName       string
+	StoreDesription string
+	Created_at      time.Time `gorm:"column:created_at" json:"created_at"`
+	Updated_at      time.Time `gorm:"column:updated_at" json:"updated_at"`
+	StoreAddress    string
+	LogoPath        string
 }

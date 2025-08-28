@@ -18,7 +18,6 @@ func SignUp(c *gin.Context) {
 		Email    string
 		Password string
 	}
-
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to load body",
@@ -34,8 +33,8 @@ func SignUp(c *gin.Context) {
 		return
 	}
 
-	User_app := model.User_app{Username: body.Username, Email: body.Email, Password: string(hash)}
-	result := initializer.DB.Create(&User_app)
+	user := model.User{Username: body.Username, Email: body.Email, Password: string(hash)}
+	result := initializer.DB.Create(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to create account",
@@ -46,6 +45,7 @@ func SignUp(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"succeed": "succeed to create account",
 	})
+
 }
 
 func Login(c *gin.Context) {
@@ -61,10 +61,10 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	var user model.User_app
+	var user model.User
 	initializer.DB.First(&user, "email = ?", body.Email)
 
-	if user.ID == 0 {
+	if user.UserID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email or password",
 		})
@@ -80,7 +80,7 @@ func Login(c *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
+		"sub": user.UserID,
 		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
 	})
 
@@ -90,7 +90,46 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("Auth", tokenString, 3600*24, "", "", true, true)
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func HomePage(c *gin.Context) {
+	var toko []model.Store
+	var produk []model.Product
+
+	if err := initializer.DB.Find(&toko).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to find store",
+		})
+		return
+	}
+	if len(toko) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"store":   toko,
+			"message": "no store found in this area",
+		})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{
+		"store": toko,
+	})
+
+	if err := initializer.DB.Find(&produk).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to find product",
+		})
+		return
+	}
+	if len(toko) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"product": produk,
+			"message": "no product",
+		})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{
+		"product": produk,
 	})
 }
