@@ -2,13 +2,11 @@ package model
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Product struct {
-	gorm.Model
 	Product_name string
+	Category     string `gorm:"type:enum('daging', 'sayur','buah');not null"`
 	StoreID      int
 	Stock        int
 	Price        int
