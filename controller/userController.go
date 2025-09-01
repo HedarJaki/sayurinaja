@@ -34,8 +34,7 @@ func SignUp(c *gin.Context) {
 	}
 
 	user := model.User{Username: body.Username, Email: body.Email, Password: string(hash)}
-	result := initializer.DB.Create(&user)
-	if result.Error != nil {
+	if initializer.DB.Create(&user).Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to create account",
 		})
@@ -45,7 +44,7 @@ func SignUp(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"succeed": "succeed to create account",
 	})
-
+	c.Redirect(http.StatusFound, "/Login")
 }
 
 func Login(c *gin.Context) {
@@ -93,6 +92,7 @@ func Login(c *gin.Context) {
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("Auth", tokenString, 3600*24, "", "", true, true)
 	c.JSON(http.StatusOK, gin.H{})
+	c.Redirect(http.StatusFound, "/home")
 }
 
 func HomePage(c *gin.Context) {

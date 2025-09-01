@@ -55,8 +55,7 @@ func AuthStoreMiddleware() gin.HandlerFunc {
 		var store model.Store
 		if err := initializer.DB.Where("userID = ?", Id).First(&store).Error; err == nil {
 			c.Set("store", store)
-		} else {
-			c.Next()
 		}
+		c.Next()
 	}
 }

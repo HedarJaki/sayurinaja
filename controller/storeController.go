@@ -4,13 +4,13 @@ import (
 	"mobapp/initializer"
 	"mobapp/model"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SignStore(c *gin.Context) {
 	userID := c.GetInt("userID")
-
 	var body struct {
 		StoreName        string
 		StoreDescription string
@@ -78,4 +78,69 @@ func SignStore(c *gin.Context) {
 		"store":   store,
 		"product": product,
 	})
+}
+
+func ShowstorebyID(id int) (model.Store, error) {
+	var store model.Store
+	if err := initializer.DB.Where("storeID = ?", id).First(&store).Error; err != nil {
+		return store, err
+	}
+	return store, nil
+}
+
+func CheckStore(c *gin.Context) {
+	storeID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to get store id",
+		})
+		return
+	}
+
+	storeData, err := ShowstorebyID(storeID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get store data",
+		})
+		return
+	}
+
+	product, err := ShowProductbyID(storeID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get product",
+		})
+		return
+	}
+
+	response := gin.H{
+		"store":    storeData,
+		"products": product,
+	}
+	if len(product) == 0 {
+		response["message"] = "there is no product in this store"
+	}
+
+	c.JSON(http.StatusOK, response)
+
+}
+
+func UserStoreHomePage(c *gin.Context) {
+	/*val, exist := c.Get("store")
+	store := val.(model.Store)
+	if !exist {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get your store data",
+		})
+		return
+	}
+
+	product, err := ShowProductbyID(store.StoreID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get product",
+		})
+		return
+	}
+	*/
 }

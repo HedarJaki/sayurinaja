@@ -19,6 +19,9 @@ func main() {
 	router.POST("/signup", controller.SignUp)
 	router.POST("/Login", controller.Login)
 	router.GET("/home", middleware.AuthMiddleware(), controller.HomePage)
-	router.PUT("/my-store", middleware.AuthStoreMiddleware(), controller.SignStore)
+	router.PUT("/sign-store", middleware.AuthStoreMiddleware(), controller.SignStore)
+	router.POST("/my_store/addproduct", controller.AddProduct)
+	router.GET("/store/:id", controller.CheckStore)
+	router.GET("/search-product", controller.ShowProductByCategory)
 	router.Run() // listen and serve on 0.0.0.0:8080
 }
