@@ -59,3 +59,21 @@ func AuthStoreMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func CartCheckMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := c.GetInt("userID")
+		var cart model.Cart
+		if initializer.DB.Where("userID = ? AND is_active = ?", user, true).First(&cart).Error != nil {
+			cart = model.Cart{UserID: user, Is_active: true}
+			if initializer.DB.Create(&cart).Error != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "failed to create cart",
+				})
+				return
+			}
+		}
+		c.Set("cartID", cart.CartID)
+		c.Next()
+	}
+}

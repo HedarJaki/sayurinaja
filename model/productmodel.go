@@ -9,7 +9,7 @@ type Product struct {
 	Category     string `gorm:"type:enum('daging', 'sayur','buah');not null"`
 	StoreID      int
 	Stock        int
-	Price        int
+	PriceEach    int
 	Description  string
 	Created_at   time.Time
 	Updated_at   time.Time

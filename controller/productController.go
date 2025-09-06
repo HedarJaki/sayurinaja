@@ -30,7 +30,7 @@ func AddProduct(c *gin.Context) {
 		})
 		return
 	}
-	product := model.Product{Product_name: body.Product_name, Category: body.category, StoreID: store.StoreID, Stock: body.Stock, Price: body.Price, Description: body.Description}
+	product := model.Product{Product_name: body.Product_name, Category: body.category, StoreID: store.StoreID, Stock: body.Stock, PriceEach: body.Price, Description: body.Description}
 	if initializer.DB.Create(&product).Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to create product",
