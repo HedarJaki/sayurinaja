@@ -14,6 +14,8 @@ func init() {
 	initializer.SyncDatabase()
 }
 
+//root:MHAIDARZAKI1@tcp(127.0.0.1:3306)/sayurinaja?charset=utf8mb4&parseTime=True&loc=Local
+
 func main() {
 	router := gin.Default()
 	router.POST("/signup", controller.SignUp)

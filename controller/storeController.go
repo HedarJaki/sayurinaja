@@ -126,7 +126,7 @@ func CheckStore(c *gin.Context) {
 }
 
 func UserStoreHomePage(c *gin.Context) {
-	/*val, exist := c.Get("store")
+	val, exist := c.Get("store")
 	store := val.(model.Store)
 	if !exist {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -142,5 +142,34 @@ func UserStoreHomePage(c *gin.Context) {
 		})
 		return
 	}
-	*/
+
+	var ListOrder []model.Order
+	if initializer.DB.Where("storeID = ?", store.StoreID).Find(&ListOrder).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get your customers order",
+		})
+		return
+	}
+	if len(product) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"eror": "there is no product in your store"})
+	} else {
+		for _, prods := range product {
+			c.JSON(http.StatusOK, gin.H{
+				"name":  prods.Product_name,
+				"stock": prods.Stock,
+			})
+		}
+	}
+
+	if len(ListOrder) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"eror": "there is no order yet"})
+	} else {
+		for _, order := range ListOrder {
+			c.JSON(http.StatusOK, gin.H{
+				"name":   order.UserId,
+				"status": order.Status,
+			})
+		}
+	}
+
 }
