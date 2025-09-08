@@ -20,9 +20,9 @@ func main() {
 	router := gin.Default()
 	router.POST("/signup", controller.SignUp)
 	router.POST("/Login", controller.Login)
-	router.GET("/home", middleware.AuthMiddleware(), controller.HomePage)
+	router.GET("/home", controller.HomePage)
 	router.PUT("/sign-store", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.SignStore) //masih perlu diupdate
-	router.POST("/my_store/addproduct", middleware.AuthStoreMiddleware(), controller.AddProduct)
+	router.POST("/my_store/addproduct", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.AddProduct)
 	router.GET("/store/:id", controller.CheckStore)
 	router.GET("/search-product", controller.ShowProductByCategory)
 	router.POST("add-product-to-cart/:id", middleware.AuthMiddleware(), middleware.CartCheckMiddleware(), controller.AddToCart)

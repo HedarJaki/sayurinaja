@@ -16,6 +16,7 @@ func AddToCart(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to get product id",
 		})
+		return
 	}
 
 	var body struct {
@@ -93,7 +94,7 @@ func ShowCart(c *gin.Context) {
 		quantity int
 	}
 	var items []body
-	if initializer.DB.Table("cartItems").Select("products.name, cartItems.quantity").Joins("products ON cartItem.productID = products.productID").Where("cartItems.cartID = ?", cartID).Find(&items).Error != nil {
+	if initializer.DB.Table("cartItems").Select("products.product_name, cartItems.quantity").Joins("products ON cartItem.productID = products.productID").Where("cartItems.cartID = ?", cartID).Find(&items).Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to find item",
 		})

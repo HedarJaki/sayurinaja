@@ -44,15 +44,15 @@ type OrderDetail struct {
 type Cart struct {
 	CartID     int       `gorm:"column:cartID;primaryKey;autoIncrement"`
 	UserID     int       `gorm:"column:userID;not null"`
-	Is_active  bool      `gorm:"column:is_activer;Default:'true'"`
+	Is_active  bool      `gorm:"column:is_active;Default:'true'"`
 	Created_at time.Time `gorm:"column:created_at" json:"created_at"`
 	Updated_at time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 type CartItem struct {
 	CartItemID int       `gorm:"column:cartItemID;primaryKey;autoIncrement"`
-	CartID     int       `gorm:"column:cartID"`
 	ProductID  int       `gorm:"column:productID;not null"`
+	CartID     int       `gorm:"column:cartID"`
 	Quantity   int       `gorm:"column:quantity;not null"`
 	Price      int       `gorm:"column:price;not null"`
 	Created_at time.Time `gorm:"column:created_at" json:"created_at"`
