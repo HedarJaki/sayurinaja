@@ -10,7 +10,7 @@ type Product struct {
 	Category     string `gorm:"type:enum('daging', 'sayur','buah');not null"`
 	StoreID      int    `gorm:"column:storeID;not null"`
 	Stock        int    `gorm:"column:stock;not null"`
-	PriceEach    int    `gorm:"column:price_each;not null"`
+	Price_Each   int    `gorm:"column:price_each;not null"`
 	Description  string
 	Created_at   time.Time `gorm:"column:created_at" json:"created_at"`
 	Updated_at   time.Time `gorm:"column:updated_at" json:"updated_at"`

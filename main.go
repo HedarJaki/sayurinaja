@@ -19,6 +19,8 @@ func init() {
 func main() {
 	router := gin.Default()
 	router.POST("/signup", controller.SignUp)
+	router.GET("/otp-code", controller.GetOTP)
+	router.POST("/verify-otp", controller.VerifyOTP)
 	router.POST("/Login", controller.Login)
 	router.GET("/home", controller.HomePage)
 	router.PUT("/sign-store", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.SignStore) //masih perlu diupdate

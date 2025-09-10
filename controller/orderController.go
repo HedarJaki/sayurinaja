@@ -31,7 +31,7 @@ func AddToCart(c *gin.Context) {
 	}
 
 	var price int
-	initializer.DB.Table("products").Select("price").Where("productID = ?", productID).First(&price)
+	initializer.DB.Table("products").Select("price_each").Where("productID = ?", productID).First(&price)
 
 	cartItem := model.CartItem{CartID: cartID, ProductID: productID, Quantity: body.quantity, Price: body.quantity * price}
 	if initializer.DB.Create(&cartItem).Error != nil {
