@@ -14,17 +14,6 @@ type User struct {
 	Is_seller bool      `gorm:"default:false" json:"is_seller"`
 }
 
-type Store struct {
-	StoreID         int    `gorm:"column:storeID;primaryKey;autoIncrement"`
-	UserID          int    `gorm:"column:userID;not null"`
-	StoreName       string `gorm:"not null"`
-	StoreDesription string
-	Created_at      time.Time `gorm:"column:created_at" json:"created_at"`
-	Updated_at      time.Time `gorm:"column:updated_at" json:"updated_at"`
-	StoreAddress    string
-	LogoPath        string
-}
-
 type Order struct {
 	OrderID    int       `gorm:"column:orderID;primaryKey;autoIncrement"`
 	UserId     int       `gorm:"column:userID;not null"`
@@ -34,11 +23,11 @@ type Order struct {
 }
 
 type OrderDetail struct {
-	OrderDetailID int `gorm:"column:orderdetailID;primaryKey;autoIncrement"`
-	ProductID     int `gorm:"column:productID;not null"`
-	OrderID       int `gorm:"column:orderIDID;not null"`
-	Quantity      int `gorm:"column:quantity;not null"`
-	Price         int `gorm:"column:price;not null"`
+	OrderDetailID int     `gorm:"column:orderdetailID;primaryKey;autoIncrement"`
+	ProductID     int     `gorm:"column:productID;not null"`
+	OrderID       int     `gorm:"column:orderIDID;not null"`
+	Quantity      int     `gorm:"column:quantity;not null"`
+	Price         float64 `gorm:"column:price;not null"`
 }
 
 type Cart struct {
@@ -54,7 +43,7 @@ type CartItem struct {
 	ProductID  int       `gorm:"column:productID;not null"`
 	CartID     int       `gorm:"column:cartID"`
 	Quantity   int       `gorm:"column:quantity;not null"`
-	Price      int       `gorm:"column:price;not null"`
+	Price      float64   `gorm:"column:price;not null"`
 	Created_at time.Time `gorm:"column:created_at" json:"created_at"`
 	Updated_at time.Time `gorm:"column:updated_at" json:"updated_at"`
 }

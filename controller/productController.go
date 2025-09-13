@@ -21,7 +21,7 @@ func AddProduct(c *gin.Context) {
 		Product_name string
 		category     string
 		Stock        int
-		Price        int
+		Price        float64
 		Description  string
 	}
 	if c.Bind(&body) != nil {

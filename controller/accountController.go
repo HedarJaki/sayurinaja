@@ -20,13 +20,23 @@ var user struct {
 	Username string
 	Email    string
 	Password string
-	Otp      string
-	ExpOTP   time.Time
 }
+
+var OTPcode struct {
+	Otp    string
+	ExpOTP time.Time
+}
+
+var account model.User
 
 func GenerateOTP() string {
 	rand.Seed(time.Now().UnixNano())
 	return fmt.Sprintf("%04d", rand.Intn(10000))
+}
+
+func GenerateOTPforgotpw() string {
+	rand.Seed(time.Now().UnixNano())
+	return fmt.Sprintf("%06d", rand.Intn(1000000))
 }
 
 func HasMX(email string) bool {
@@ -37,7 +47,7 @@ func HasMX(email string) bool {
 
 	domain := part[1]
 	mx, err := net.LookupMX(domain)
-	return err != nil && len(mx) > 0
+	return err == nil && len(mx) > 0
 }
 
 func SignUp(c *gin.Context) {
@@ -58,8 +68,8 @@ func SignUp(c *gin.Context) {
 
 func GetOTP(c *gin.Context) {
 	otp := GenerateOTP()
-	user.Otp = otp
-	user.ExpOTP = time.Now().Add(5 * time.Minute)
+	OTPcode.Otp = otp
+	OTPcode.ExpOTP = time.Now().Add(5 * time.Minute)
 
 	c.JSON(http.StatusOK, gin.H{
 		"kode": otp,
@@ -67,18 +77,20 @@ func GetOTP(c *gin.Context) {
 }
 
 func VerifyOTP(c *gin.Context) {
-	var otp string
-	if c.Bind(&otp) != nil {
+	var body struct {
+		otp string
+	}
+	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 		return
 	}
 
-	if user.Otp != otp {
+	if body.otp != OTPcode.Otp {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
 		return
 	}
 
-	if time.Now().After(user.ExpOTP) {
+	if time.Now().After(OTPcode.ExpOTP) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code already expired"})
 		return
 	}
@@ -119,9 +131,7 @@ func Login(c *gin.Context) {
 	}
 
 	var user model.User
-	initializer.DB.First(&user, "email = ?", body.Email)
-
-	if user.UserID == 0 {
+	if initializer.DB.Where("email = ?", body.Email).First(&user).Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid email or password",
 		})
@@ -152,7 +162,91 @@ func Login(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/home")
 }
 
-func HomePage(c *gin.Context) {
+func Forgotpw(c *gin.Context) {
+	var body struct {
+		email string
+	}
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to load body",
+		})
+		return
+	}
+	if initializer.DB.Where("email = ?", body.email).First(&account).Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid email",
+		})
+		return
+	}
+}
+
+func GetforgotPwOTP(c *gin.Context) {
+	OTP := GenerateOTPforgotpw()
+	OTPcode.Otp = OTP
+	OTPcode.ExpOTP = time.Now().Add(5 * time.Minute)
+
+	c.JSON(http.StatusOK, gin.H{
+		"kode": OTP,
+	})
+}
+
+func VerifyForgotPWOTP(c *gin.Context) {
+	var body struct {
+		code string
+	}
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to load body",
+		})
+		return
+	}
+
+	if body.code != OTPcode.Otp {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
+		return
+	}
+
+	if time.Now().After(OTPcode.ExpOTP) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "code already expired"})
+		return
+	}
+}
+
+func NewPassword(c *gin.Context) {
+	var body struct {
+		newPW string
+	}
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to load body",
+		})
+		return
+	}
+
+	Hash, err := bcrypt.GenerateFromPassword([]byte(body.newPW), 10)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to hash password",
+		})
+		return
+	}
+
+	account.Password = string(Hash)
+	if initializer.DB.Save(account).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to change password",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "your password already changed ",
+	})
+
+}
+
+func Home(c *gin.Context) {
+
 	var toko []model.Store
 	var produk []model.Product
 
@@ -162,16 +256,6 @@ func HomePage(c *gin.Context) {
 		})
 		return
 	}
-	if len(toko) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"store":   toko,
-			"message": "no store found in this area",
-		})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{
-		"store": toko,
-	})
 
 	if err := initializer.DB.Find(&produk).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -179,14 +263,19 @@ func HomePage(c *gin.Context) {
 		})
 		return
 	}
-	if len(toko) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"product": produk,
-			"message": "no product",
-		})
-		return
+
+	resp := gin.H{
+		"toko":   toko,
+		"produk": produk,
 	}
-	c.JSON(http.StatusBadRequest, gin.H{
-		"product": produk,
-	})
+
+	if len(toko) == 0 {
+		resp["store_message"] = "no store found in this area"
+	}
+
+	if len(toko) == 0 {
+		resp["product_message"] = "no product found"
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

@@ -30,10 +30,10 @@ func AddToCart(c *gin.Context) {
 		return
 	}
 
-	var price int
+	var price float64
 	initializer.DB.Table("products").Select("price_each").Where("productID = ?", productID).First(&price)
 
-	cartItem := model.CartItem{CartID: cartID, ProductID: productID, Quantity: body.quantity, Price: body.quantity * price}
+	cartItem := model.CartItem{CartID: cartID, ProductID: productID, Quantity: body.quantity, Price: float64(body.quantity) * price}
 	if initializer.DB.Create(&cartItem).Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to save item",
@@ -72,7 +72,7 @@ func UpdateCart(c *gin.Context) {
 			"message": "cart updated successfully",
 		})
 	} else if cartItem.Quantity == body.quantity {
-		cartItem.Price = body.quantity * (cartItem.Price / cartItem.Quantity)
+		cartItem.Price = float64(body.quantity) * (cartItem.Price / float64(cartItem.Quantity))
 		cartItem.Quantity = body.quantity
 		if initializer.DB.Where("productID = ? AND cartID = ?", body.productID, cart).Save(&cartItem).Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
