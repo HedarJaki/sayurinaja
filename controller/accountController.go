@@ -75,14 +75,14 @@ func SignUp(c *gin.Context) {
 
 func VerifyOTP(c *gin.Context) {
 	var body struct {
-		otp string
+		Otp string
 	}
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 		return
 	}
 
-	if body.otp != OTPcode.Otp {
+	if body.Otp != OTPcode.Otp {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
 		return
 	}
