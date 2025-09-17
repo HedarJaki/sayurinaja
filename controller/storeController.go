@@ -122,54 +122,110 @@ func CheckStore(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
-
 }
 
 func UserStoreHomePage(c *gin.Context) {
-	val, exist := c.Get("store")
-	store := val.(model.Store)
-	if !exist {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to get your store data",
-		})
-		return
-	}
+	storeID := c.GetInt("storeID")
 
-	product, err := ShowProductbyID(store.StoreID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to get product",
-		})
-		return
-	}
+	var store model.Store
+	result := initializer.DB.Preload("Product").Preload("Order").First(&store, "storeID = ?", storeID)
 
-	var ListOrder []model.Order
-	if initializer.DB.Where("storeID = ?", store.StoreID).Find(&ListOrder).Error != nil {
+	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to get your customers order",
 		})
 		return
 	}
-	if len(product) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"eror": "there is no product in your store"})
-	} else {
-		for _, prods := range product {
-			c.JSON(http.StatusOK, gin.H{
-				"name":  prods.Product_name,
-				"stock": prods.Stock,
-			})
-		}
+
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "store not found",
+		})
+		return
 	}
 
-	if len(ListOrder) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"eror": "there is no order yet"})
-	} else {
-		for _, order := range ListOrder {
-			c.JSON(http.StatusOK, gin.H{
-				"name":   order.UserId,
-				"status": order.Status,
-			})
-		}
+	response := gin.H{
+		"name":        store.StoreName,
+		"rating":      store.Rating,
+		"description": store.StoreDesription,
+		"address":     store.StoreAddress,
+		"product":     store.Products,
+		"order":       store.Orders,
 	}
 
+	if len(store.Products) == 0 {
+		response["message"] = "there is no product in your store"
+	}
+
+	if len(store.Orders) == 0 {
+		response["message"] = "there is no order in your store"
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func StoreReview(c *gin.Context) {
+	var body struct {
+		star int
+		desc string
+	}
+	user := c.GetInt("userID")
+	storeid, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to get store id",
+		})
+		return
+	}
+
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to load body",
+		})
+		return
+	}
+
+	review := model.StoreReview{
+		StoreID:           storeid,
+		UserID:            user,
+		Star:              body.star,
+		Store_review_desc: body.desc,
+	}
+
+	if initializer.DB.Create(&review).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create review",
+		})
+		return
+	}
+
+	var store model.Store
+	if initializer.DB.Preload("Review").Where("storeId = ?", store).First(&store).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed load store's review",
+		})
+		return
+	}
+
+	if len(store.Reviews) == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "no review",
+		})
+		return
+	}
+
+	var totalstar int
+	for _, review := range store.Reviews {
+		totalstar += review.Star
+	}
+
+	store.Rating = float64(totalstar) / float64(len(store.Reviews))
+	if initializer.DB.Save(&store).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "failed to update the rating",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "you review created successfully"})
 }

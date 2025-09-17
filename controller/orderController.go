@@ -115,4 +115,66 @@ func ShowCart(c *gin.Context) {
 }
 
 func AddOrder(c *gin.Context) {
+	user := c.GetInt("userID")
+	var cart model.Cart
+	if initializer.DB.Preload("Item").Where("userID = ? AND is_active = ?", user, true).First(&cart).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no cart is active"})
+		return
+	}
+
+	if len(cart.CartItems) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cart is empty"})
+	}
+
+	var product model.Product
+	if initializer.DB.Where("productID = ?", cart.CartItems[0].ProductID).First(&product).Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cant find the store you ordered"})
+		return
+	}
+
+	tx := initializer.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var total float64
+	for _, item := range cart.CartItems {
+		total += item.Price
+	}
+
+	order := model.Order{
+		UserID:      user,
+		StoreID:     product.StoreID,
+		Total_price: total,
+		Status:      "dalam proses",
+	}
+
+	if tx.Create(&order).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create order"})
+		return
+	}
+
+	for _, item := range cart.CartItems {
+		orderitem := model.OrderDetail{
+			ProductID: item.ProductID,
+			OrderID:   order.OrderID,
+			Quantity:  item.Quantity,
+			Price:     item.Price,
+		}
+		if tx.Create(&orderitem).Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create order item"})
+			return
+		}
+	}
+
+	cart.Is_active = false
+	if tx.Save(&cart).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "faied to close cart"})
+		return
+	}
+
+	tx.Commit()
+	c.JSON(http.StatusOK, gin.H{"message": "order created successfully"})
 }

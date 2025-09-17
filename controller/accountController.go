@@ -64,9 +64,6 @@ func SignUp(c *gin.Context) {
 		})
 		return
 	}
-}
-
-func GetOTP(c *gin.Context) {
 	otp := GenerateOTP()
 	OTPcode.Otp = otp
 	OTPcode.ExpOTP = time.Now().Add(5 * time.Minute)
@@ -114,7 +111,6 @@ func VerifyOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"succeed": "succeed to create account",
 	})
-	c.Redirect(http.StatusFound, "/Login")
 }
 
 func Login(c *gin.Context) {
@@ -159,12 +155,12 @@ func Login(c *gin.Context) {
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("Auth", tokenString, 3600*24, "", "", true, true)
-	c.Redirect(http.StatusFound, "/home")
+	c.JSON(http.StatusOK, gin.H{"message": "login successfull"})
 }
 
 func Forgotpw(c *gin.Context) {
 	var body struct {
-		email string
+		Email string `json:"Email" form:"email"`
 	}
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -172,15 +168,14 @@ func Forgotpw(c *gin.Context) {
 		})
 		return
 	}
-	if initializer.DB.Where("email = ?", body.email).First(&account).Error != nil {
+
+	if initializer.DB.First(&account, "email = ?", body.Email).Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid email",
 		})
 		return
 	}
-}
 
-func GetforgotPwOTP(c *gin.Context) {
 	OTP := GenerateOTPforgotpw()
 	OTPcode.Otp = OTP
 	OTPcode.ExpOTP = time.Now().Add(5 * time.Minute)
@@ -192,7 +187,7 @@ func GetforgotPwOTP(c *gin.Context) {
 
 func VerifyForgotPWOTP(c *gin.Context) {
 	var body struct {
-		code string
+		Code string `json:"Code"`
 	}
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -201,7 +196,7 @@ func VerifyForgotPWOTP(c *gin.Context) {
 		return
 	}
 
-	if body.code != OTPcode.Otp {
+	if body.Code != OTPcode.Otp {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid code"})
 		return
 	}
@@ -210,11 +205,14 @@ func VerifyForgotPWOTP(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code already expired"})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "verify success"})
 }
 
 func NewPassword(c *gin.Context) {
 	var body struct {
-		newPW string
+		NewPW     string `json:"Password"`
+		ConfirmPW string `json:"Confirmed_password"`
 	}
 	if c.Bind(&body) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -223,7 +221,14 @@ func NewPassword(c *gin.Context) {
 		return
 	}
 
-	Hash, err := bcrypt.GenerateFromPassword([]byte(body.newPW), 10)
+	if body.NewPW != body.ConfirmPW {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "confirm password must be the same as your new password",
+		})
+		return
+	}
+
+	Hash, err := bcrypt.GenerateFromPassword([]byte(body.NewPW), 10)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to hash password",
@@ -247,17 +252,17 @@ func NewPassword(c *gin.Context) {
 
 func Home(c *gin.Context) {
 
-	var toko []model.Store
-	var produk []model.Product
+	var store []model.Store
+	var product []model.Product
 
-	if err := initializer.DB.Find(&toko).Error; err != nil {
+	if err := initializer.DB.Find(&store).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to find store",
 		})
 		return
 	}
 
-	if err := initializer.DB.Find(&produk).Error; err != nil {
+	if err := initializer.DB.Find(&product).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to find product",
 		})
@@ -265,15 +270,15 @@ func Home(c *gin.Context) {
 	}
 
 	resp := gin.H{
-		"toko":   toko,
-		"produk": produk,
+		"toko":   store,
+		"produk": product,
 	}
 
-	if len(toko) == 0 {
+	if len(store) == 0 {
 		resp["store_message"] = "no store found in this area"
 	}
 
-	if len(toko) == 0 {
+	if len(product) == 0 {
 		resp["product_message"] = "no product found"
 	}
 
