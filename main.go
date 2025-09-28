@@ -14,7 +14,7 @@ func init() {
 	initializer.SyncDatabase()
 }
 
-//root:MHAIDARZAKI1@tcp(127.0.0.1:3306)/sayurinaja?charset=utf8mb4&parseTime=True&loc=Local
+//arief:12345@tcp(127.0.0.1:3306)/sayurinaja?charset=utf8mb4&parseTime=True&loc=Local
 
 func main() {
 	router := gin.Default()
@@ -26,12 +26,13 @@ func main() {
 	router.POST("/Login", controller.Login)
 	router.GET("/home", controller.Home)
 	router.PUT("/sign-store", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.SignStore) //masih perlu diupdate
+	router.GET("/my-store", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.UserStoreHomePage)
 	router.PUT("/review-store/:id", middleware.AuthMiddleware(), controller.StoreReview)
 	router.POST("/addproduct", middleware.AuthMiddleware(), middleware.AuthStoreMiddleware(), controller.AddProduct)
-	router.POST("review-product/:id", middleware.AuthMiddleware(), controller.ProductReview)
+	router.POST("/review-product/:id", middleware.AuthMiddleware(), controller.ProductReview)
 	router.GET("/store/:id", controller.CheckStore)
 	router.GET("/search-product", controller.ShowProductByCategory)
-	router.POST("add-product-to-cart/:id", middleware.AuthMiddleware(), middleware.CartCheckMiddleware(), controller.AddToCart)
+	router.POST("/add-product-to-cart/:id", middleware.AuthMiddleware(), middleware.CartCheckMiddleware(), controller.AddToCart)
 	router.PUT("/cart", middleware.AuthMiddleware(), middleware.CartCheckMiddleware(), controller.ShowCart)
 	router.POST("/add-order", middleware.AuthMiddleware(), controller.AddOrder)
 	router.Run() // listen and serve on 0.0.0.0:8080

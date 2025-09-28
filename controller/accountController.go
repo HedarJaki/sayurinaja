@@ -113,7 +113,7 @@ func VerifyOTP(c *gin.Context) {
 	})
 }
 
-func Login(c *gin.Context) {
+func Login(c *gin.Context) { //sampe sini
 	var body struct {
 		Email    string
 		Password string
@@ -144,7 +144,7 @@ func Login(c *gin.Context) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": user.UserID,
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"exp": time.Now().Add(time.Minute * 5).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET")))

@@ -20,7 +20,7 @@ func AddProduct(c *gin.Context) {
 	store := val.(model.Store)
 	var body struct {
 		Product_name string
-		category     string
+		Category     string
 		Stock        int
 		Price        float64
 		Description  string
@@ -31,7 +31,7 @@ func AddProduct(c *gin.Context) {
 		})
 		return
 	}
-	product := model.Product{Product_name: body.Product_name, Category: body.category, StoreID: store.StoreID, Stock: body.Stock, Price_Each: body.Price, Product_description: body.Description}
+	product := model.Product{Product_name: body.Product_name, Category: body.Category, StoreID: store.StoreID, Stock: body.Stock, Price_Each: body.Price, Product_description: body.Description}
 	if initializer.DB.Create(&product).Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "failed to create product",
@@ -75,8 +75,8 @@ func ShowProductByCategory(c *gin.Context) {
 
 func ProductReview(c *gin.Context) {
 	var body struct {
-		star int
-		desc string
+		Star int
+		Desc string
 	}
 	user := c.GetInt("userID")
 	productId, err := strconv.Atoi(c.Param("id"))
@@ -97,8 +97,8 @@ func ProductReview(c *gin.Context) {
 	review := model.Productreview{
 		ProductID:   productId,
 		UserID:      user,
-		Star:        body.star,
-		Description: body.desc,
+		Star:        body.Star,
+		Description: body.Desc,
 	}
 
 	if initializer.DB.Create(&review).Error != nil {
@@ -134,7 +134,7 @@ func ProductReview(c *gin.Context) {
 			"message": "failed to update the rating",
 		})
 		return
-	}
+	}*/
 
-	c.JSON(http.StatusOK, gin.H{"message": "you review created successfully"})*/
+	c.JSON(http.StatusOK, gin.H{"message": "you review created successfully"})
 }

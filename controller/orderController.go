@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"mobapp/initializer"
 	"mobapp/model"
 	"net/http"
@@ -9,18 +10,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var total_cart float64
+
 func AddToCart(c *gin.Context) {
 	cartID := c.GetInt("cartID")
-	productID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to get product id",
-		})
-		return
-	}
+	//productID, err := strconv.Atoi(c.Param("id"))
 
 	var body struct {
-		quantity int
+		Item []struct {
+			ProductID int
+			Quantity  int
+			Note      string
+		}
 	}
 
 	if c.Bind(&body) != nil {
@@ -30,27 +31,37 @@ func AddToCart(c *gin.Context) {
 		return
 	}
 
-	var price float64
-	initializer.DB.Table("products").Select("price_each").Where("productID = ?", productID).First(&price)
+	for _, item := range body.Item {
+		var Price_Each float64
+		if initializer.DB.Table("products").Where("productID = ?", item.ProductID).First(&Price_Each).Error != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("product %d not found", item.ProductID)})
+			return
+		}
 
-	cartItem := model.CartItem{CartID: cartID, ProductID: productID, Quantity: body.quantity, Price: float64(body.quantity) * price}
-	if initializer.DB.Create(&cartItem).Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to save item",
-		})
-		return
+		cartitem := model.CartItem{
+			CartID:    cartID,
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			Note:      item.Note,
+		}
+		if initializer.DB.Create(&cartitem).Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to add the item",
+			})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "product added",
 	})
 }
 
-func UpdateCart(c *gin.Context) {
+/*func UpdateCart(c *gin.Context) {
 	cart := c.GetInt("cartID")
 
 	var body struct {
-		productID int
-		quantity  int
+		ProductID int
+		Quantity  int
 	}
 
 	if c.Bind(&body) != nil {
@@ -61,8 +72,8 @@ func UpdateCart(c *gin.Context) {
 	}
 
 	var cartItem model.CartItem
-	if body.quantity == 0 {
-		if initializer.DB.Where("productID = ? AND cartID = ?", body.productID, cart).Delete(&cartItem).Error != nil {
+	if body.Quantity == 0 {
+		if initializer.DB.Where("productID = ? AND cartID = ?", body.ProductID, cart).Delete(&cartItem).Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to remove product from cart",
 			})
@@ -71,10 +82,10 @@ func UpdateCart(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "cart updated successfully",
 		})
-	} else if cartItem.Quantity == body.quantity {
-		cartItem.Price = float64(body.quantity) * (cartItem.Price / float64(cartItem.Quantity))
-		cartItem.Quantity = body.quantity
-		if initializer.DB.Where("productID = ? AND cartID = ?", body.productID, cart).Save(&cartItem).Error != nil {
+	} else if cartItem.Quantity == body.Quantity {
+		cartItem.Price = float64(body.Quantity) * (cartItem.Price / float64(cartItem.Quantity))
+		cartItem.Quantity = body.Quantity
+		if initializer.DB.Where("productID = ? AND cartID = ?", body.ProductID, cart).Save(&cartItem).Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "failed to update the cart",
 			})
@@ -84,34 +95,43 @@ func UpdateCart(c *gin.Context) {
 			"message": "cart updated successfully",
 		})
 	}
-}
+}*/
 
 func ShowCart(c *gin.Context) {
 	cartID := c.GetInt("cartID")
+	shipment := c.Param("shipment")
 
-	type body struct {
-		name     string
-		quantity int
-	}
-	var items []body
-	if initializer.DB.Table("cartItems").Select("products.product_name, cartItems.quantity").Joins("products ON cartItem.productID = products.productID").Where("cartItems.cartID = ?", cartID).Find(&items).Error != nil {
+	var cart model.Cart
+	if initializer.DB.Preload("CartItems").First(&cart, "cartID = ? AND is_active = ?", cartID, true) != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to find item",
 		})
 		return
 	}
 
-	if len(items) == 0 {
+	if len(cart.CartItems) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"eror": "cart is empty"})
 		return
 	}
 
-	for _, item := range items {
-		c.JSON(http.StatusOK, gin.H{
-			"product":  item.name,
-			"quantity": item.quantity,
-		})
+	var shipment_price float64
+	if shipment == "express" {
+		shipment_price = 2500
+	} else {
+		shipment_price = 5000
 	}
+
+	for _, item := range cart.CartItems {
+		total_cart += item.Price
+	}
+
+	total_cart += shipment_price
+
+	c.JSON(http.StatusOK, gin.H{
+		"cart":     cart,
+		"shipment": shipment_price,
+		"total":    total_cart,
+	})
 }
 
 func AddOrder(c *gin.Context) {
@@ -139,15 +159,10 @@ func AddOrder(c *gin.Context) {
 		}
 	}()
 
-	var total float64
-	for _, item := range cart.CartItems {
-		total += item.Price
-	}
-
 	order := model.Order{
 		UserID:      user,
 		StoreID:     product.StoreID,
-		Total_price: total,
+		Total_price: total_cart,
 		Status:      "dalam proses",
 	}
 
@@ -177,4 +192,93 @@ func AddOrder(c *gin.Context) {
 
 	tx.Commit()
 	c.JSON(http.StatusOK, gin.H{"message": "order created successfully"})
+}
+
+func UpdateOrdershipment(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to get order data",
+			})
+			return
+		}
+	}
+
+	var order model.Order
+	if initializer.DB.First(&order, "orderID = ?", orderID).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get order data",
+		})
+		return
+	}
+
+	order.Status = "sedang dikirim"
+	if initializer.DB.Save(&order).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to update order",
+		})
+		return
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{
+		"message": "order updated successfully",
+	})
+}
+
+func Checkorder(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get orderid",
+		})
+		return
+	}
+
+	var order model.Order
+	if initializer.DB.Preload("OrderDetails").Where("orderID = ?", orderID).First(&order).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get order data",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"order": order,
+	})
+}
+
+func AddAddress(c *gin.Context) {
+	Id := c.GetInt("userID")
+
+	var body struct {
+		Fulladdress string
+		Latitude    float64
+		Longitude   float64
+	}
+
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to load body",
+		})
+		return
+	}
+
+	Address := model.Address{
+		UserID:      Id,
+		Fulladdress: body.Fulladdress,
+		Latitude:    body.Latitude,
+		Longitude:   body.Longitude,
+	}
+
+	if initializer.DB.Create(&Address).Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to add your address",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "address added successfully",
+	})
 }

@@ -38,10 +38,10 @@ func SignStore(c *gin.Context) {
 	tx := initializer.DB.Begin()
 
 	store := model.Store{
-		UserID:          userID,
-		StoreName:       body.StoreName,
-		StoreDesription: body.StoreDescription,
-		StoreAddress:    body.StoreAddress,
+		UserID:           userID,
+		StoreName:        body.StoreName,
+		StoreDesrciption: body.StoreDescription,
+		Store_Address:    body.StoreAddress,
 	}
 
 	if tx.Create(&store).Error != nil {
@@ -128,7 +128,7 @@ func UserStoreHomePage(c *gin.Context) {
 	storeID := c.GetInt("storeID")
 
 	var store model.Store
-	result := initializer.DB.Preload("Product").Preload("Order").First(&store, "storeID = ?", storeID)
+	result := initializer.DB.Preload("Products").Preload("Orders").First(&store, "storeID = ?", storeID)
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -146,9 +146,8 @@ func UserStoreHomePage(c *gin.Context) {
 
 	response := gin.H{
 		"name":        store.StoreName,
-		"rating":      store.Rating,
-		"description": store.StoreDesription,
-		"address":     store.StoreAddress,
+		"description": store.StoreDesrciption,
+		"address":     store.Store_Address,
 		"product":     store.Products,
 		"order":       store.Orders,
 	}
@@ -166,8 +165,8 @@ func UserStoreHomePage(c *gin.Context) {
 
 func StoreReview(c *gin.Context) {
 	var body struct {
-		star int
-		desc string
+		Star int
+		Desc string
 	}
 	user := c.GetInt("userID")
 	storeid, err := strconv.Atoi(c.Param("id"))
@@ -188,8 +187,8 @@ func StoreReview(c *gin.Context) {
 	review := model.StoreReview{
 		StoreID:           storeid,
 		UserID:            user,
-		Star:              body.star,
-		Store_review_desc: body.desc,
+		Star:              body.Star,
+		Store_review_desc: body.Desc,
 	}
 
 	if initializer.DB.Create(&review).Error != nil {
@@ -198,34 +197,5 @@ func StoreReview(c *gin.Context) {
 		})
 		return
 	}
-
-	var store model.Store
-	if initializer.DB.Preload("Review").Where("storeId = ?", store).First(&store).Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed load store's review",
-		})
-		return
-	}
-
-	if len(store.Reviews) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "no review",
-		})
-		return
-	}
-
-	var totalstar int
-	for _, review := range store.Reviews {
-		totalstar += review.Star
-	}
-
-	store.Rating = float64(totalstar) / float64(len(store.Reviews))
-	if initializer.DB.Save(&store).Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "failed to update the rating",
-		})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "you review created successfully"})
 }

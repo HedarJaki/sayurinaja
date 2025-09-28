@@ -20,18 +20,19 @@ type Product struct {
 }
 
 type Store struct {
-	StoreID         int     `gorm:"column:storeID;primaryKey;autoIncrement"`
-	UserID          int     `gorm:"column:userID;not null"`
-	StoreName       string  `gorm:"not null"`
-	Rating          float64 `gorm:"column:rating"`
-	StoreDesription string
-	Created_at      time.Time `gorm:"column:created_at" json:"created_at"`
-	Updated_at      time.Time `gorm:"column:updated_at" json:"updated_at"`
-	StoreAddress    string
-	LogoPath        string
-	Products        []Product     `gorm:"foreignKey:StoreID;references:StoreID"`
-	Reviews         []StoreReview `gorm:"foreignKey:StoreID;references:StoreID"`
-	Orders          []Order       `gorm:"foreignKey:StoreID;references:StoreID"`
+	StoreID          int           `gorm:"column:storeID;primaryKey;autoIncrement"`
+	UserID           int           `gorm:"column:userID;not null"`
+	StoreName        string        `gorm:"column:store_name;not null"`
+	StoreDesrciption string        `gorm:"column:store_desrciption;not null"`
+	Created_at       time.Time     `gorm:"column:created_at" json:"created_at"`
+	Updated_at       time.Time     `gorm:"column:updated_at" json:"updated_at"`
+	Store_Address    string        `gorm:"column:Store_address;not null"`
+	Latitude         float64       `gorm:"column:latitude;not null"`
+	Longitude        float64       `gorm:"column:longitude;not null"`
+	LogoPath         string        `gorm:"column:logo_path;not null"`
+	Products         []Product     `gorm:"foreignKey:StoreID;references:StoreID"`
+	Reviews          []StoreReview `gorm:"foreignKey:StoreID;references:StoreID"`
+	Orders           []Order       `gorm:"foreignKey:StoreID;references:StoreID"`
 	//User            User          `gorm:"foreignKey:UserID;references:UserID"`
 }
 
